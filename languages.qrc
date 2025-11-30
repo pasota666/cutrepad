@@ -1,6 +1,0 @@
-<RCC>
-    <qresource prefix="/languages">
-        <file>languages/cpp.conf</file>
-        <file>languages/gemix.conf</file>
-    </qresource>
-</RCC>
