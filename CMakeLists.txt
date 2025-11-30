@@ -20,23 +20,26 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
+        languages/cpp.ini
+        languages/gemix.ini
         translations/${TS_FILES}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    # Crea el ejecutable
     qt_add_executable(cutrepad
         MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}
-        languages.qrc
+        ${PROJECT_SOURCES}        
         appconfig.h
         appconfig.cpp
+        configmanager.h
+        configmanager.cpp
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET cutrepad APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 
-    # qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    # Copia los archivos de lenguaje (solo cuando se ejecuta CMake)
+    file(COPY ${CMAKE_SOURCE_DIR}/languages DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+    # Crea los archivos de traducciones .ts y .qm
     qt_add_translations(cutrepad
         SOURCE_TARGETS cutrepad
         TS_FILES translations/${TS_FILES}
@@ -86,3 +89,5 @@ install(TARGETS cutrepad
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(cutrepad)
 endif()
+
+

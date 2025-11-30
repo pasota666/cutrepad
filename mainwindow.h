@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "configmanager.h"
 #include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
@@ -19,11 +20,13 @@ public:
 
 private slots:
     void on_actionNew_triggered();
-
     void on_actionOpen_triggered();
 
 private:
     Ui::MainWindow *ui;
-        void imprimirConsola(const QString &mensaje, const QString &tipo = "info");
+    ConfigManager config;
+    void print(const QString &msg, const QString &type = "info");
+    void openFile(const QString &filePath);
+    void openNewFile();
 };
 #endif // MAINWINDOW_H

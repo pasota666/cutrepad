@@ -34,9 +34,14 @@
         <translation>Abrir ...</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="34"/>
+        <location filename="../mainwindow.cpp" line="36"/>
         <source>Application started</source>
         <translation>Aplicación iniciada</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="61"/>
+        <source>Open file</source>
+        <translation>Abrir archivo</translation>
     </message>
 </context>
 </TS>

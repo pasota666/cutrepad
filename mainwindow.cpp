@@ -3,6 +3,8 @@
 #include "appconfig.h"
 #include <QDateTime>
 #include <QScrollBar>
+#include <QFile>
+#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -30,8 +32,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitHorizontal->setSizes({488, 280}); // Tamaños por defecto (suman 768)
 
     setWindowTitle(AppConfig::APP_NAME + " " + AppConfig::VERSION);
-    imprimirConsola(AppConfig::APP_NAME + " " + AppConfig::VERSION + " by " + AppConfig::ORGANIZATION);
-    imprimirConsola(tr("Application started"));
+    print(AppConfig::APP_NAME + " " + AppConfig::VERSION + " by " + AppConfig::ORGANIZATION);
+    print(tr("Application started"));
 
 }
 
@@ -40,18 +42,40 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+/************************************************************************************************
+ *
+ *  ACCIONES DE BOTONES
+ *
+ ************************************************************************************************/
+
 void MainWindow::on_actionNew_triggered()
 {
-
+    openNewFile();
 }
 
 
 void MainWindow::on_actionOpen_triggered()
-{
-
+{        
+    // Muestra el dialogo para abrir el archivo
+    QString filter = "Prg File (*.prg) ;; Text File (*.txt) ;; All Files (*.*)";
+    QString file = QFileDialog::getOpenFileName(this, tr("Open file"), config.getLastPath(), config.getOpenFileFilter());
+    if (file.isEmpty()) {
+        return;
+    }
+    // Actualizar lastPath antes de abrir el archivo
+    QFileInfo fileInfo(file);
+    config.setLastPath(fileInfo.absolutePath());
+    // Abre el archivo
+    openFile(file);
 }
 
-void MainWindow::imprimirConsola(const QString &mensaje, const QString &tipo) {
+/************************************************************************************************
+ *
+ *  CONSOLA
+ *
+ ************************************************************************************************/
+
+void MainWindow::print(const QString &mensaje, const QString &tipo) {
     QString timestamp = QDateTime::currentDateTime().toString("[hh:mm:ss] ");
     QString texto = timestamp + mensaje;
 
@@ -69,5 +93,29 @@ void MainWindow::imprimirConsola(const QString &mensaje, const QString &tipo) {
     cursor.insertText(texto + "\n", format);
 
     ui->txtStatus->verticalScrollBar()->setValue(ui->txtStatus->verticalScrollBar()->maximum());
+}
+
+/************************************************************************************************
+ *
+ *  OPERACIONES SOBRE ARCHIVOS
+ *
+ ************************************************************************************************/
+
+void MainWindow::openFile(const QString &filePath) {
+
+    // TO-DO: Verificar que el archivo no está abierto ya
+
+    // Intentamos abrir el archivo
+    QFile file(filePath);
+    if (!file.open(QFile::ReadOnly | QFile::Text)) {
+        print("Error al abrir: " + filePath, "error");
+        return;
+    }
+
+}
+
+void MainWindow::openNewFile(){
+
+
 }
 
