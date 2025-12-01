@@ -34,6 +34,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         appconfig.cpp
         configmanager.h
         configmanager.cpp
+        codeeditor.h
+        codeeditor.cpp
+        myeventfilter.h
+        myeventfilter.cpp
+        resources.qrc
     )
 
     # Copia los archivos de lenguaje (solo cuando se ejecuta CMake)

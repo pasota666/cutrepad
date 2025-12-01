@@ -1,22 +1,46 @@
+/*
+
+    TO-DO:
+
+    - Crear en cutrepad.ini una variable "language" [auto|en|es]
+    - Crear en cutrepad.ini una variable "fontSize"
+    - Crear en cutrepad.ini una variable "charset"
+
+    CARACTERÍSTICAS AVANZADAS:
+    - Autocompletado de funciones integradas del lenguaje, con ayuda integrada visible.
+    - Autocompletado de funciones declaradas y existentes (incluso en archivos de biblioteca).
+    - Acceso a herramientas externas.
+
+*/
+
+
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "appconfig.h"
+#include "codeeditor.h"
+#include "myeventfilter.h"
 #include <QDateTime>
 #include <QScrollBar>
 #include <QFile>
 #include <QFileDialog>
+#include <QTabBar>
+
+/************************************************************************************************
+ *
+ *  VENTANA PRINCIPAL
+ *
+ ************************************************************************************************/
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     // Carga la UI
-    ui->setupUi(this);
+    ui->setupUi(this);            
 
     // Organiza la parte superior (tabAux y tabCode)
     ui->tabAux->setMinimumWidth(50); // Establece los tamaños mínimos
-    ui->tabCode->setMinimumWidth(50);
-    ui->tabCode->setTabsClosable(true); // Las tabs de código pueden cerrarse
+    ui->tabCode->setMinimumWidth(50);    
     ui->splitVertical->setChildrenCollapsible(false); // No desaparecen los widgets si se estira mucho
     ui->splitVertical->setStretchFactor(0, 0); // El slot 0 (izquierda) no cambia su tamaño (0)
     ui->splitVertical->setStretchFactor(1, 1); // El slot 1 (derecha) absorbe todo el tamaño extra (1)
@@ -29,11 +53,26 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitHorizontal->setStretchFactor(0, 1); // El slot 0 (arriba) absorbe todo el tamaño extra (1)
     ui->splitHorizontal->setStretchFactor(1, 0); // El slot 1 (abajo) no cambia de tamaño (0)
     //ui->splitHorizontal->setSizes({376, 200}); // Tamaños por defecto (suman 576)
-    ui->splitHorizontal->setSizes({488, 280}); // Tamaños por defecto (suman 768)
+    ui->splitHorizontal->setSizes({376, 200}); // Tamaños por defecto (suman 768)
 
+    // Crea el filtro personalizado de eventos
+    myEventFilter *filter = new myEventFilter(this);
+    ui->tabCode->installEventFilter(filter);
+    connect(filter, &myEventFilter::emptyAreaClicked, this, &MainWindow::openNewFile); // Click área vacía de tabs para crear nuevo archivo
+
+    // Cerrado de pestañas en tabCode
+    ui->tabCode->setTabsClosable(true); // Las tabs de código pueden cerrarse
+    connect(ui->tabCode, &QTabWidget::tabCloseRequested, this, &MainWindow::closeFile);
+
+    // Para finalizar, imprime información de la aplicación
     setWindowTitle(AppConfig::APP_NAME + " " + AppConfig::VERSION);
     print(AppConfig::APP_NAME + " " + AppConfig::VERSION + " by " + AppConfig::ORGANIZATION);
-    print(tr("Application started"));
+    print(tr("Application started."));
+
+    // Si no hay pestañas abiertas, crea una nueva
+    if (ui->tabCode->count() == 0) {
+        openNewFile();
+    }
 
 }
 
@@ -48,25 +87,39 @@ MainWindow::~MainWindow()
  *
  ************************************************************************************************/
 
+// ======================================================
+// Nuevo Archivo
+// ======================================================
 void MainWindow::on_actionNew_triggered()
 {
     openNewFile();
 }
 
-
+// ======================================================
+// Abrir Archivo ...
+// ======================================================
 void MainWindow::on_actionOpen_triggered()
 {        
     // Muestra el dialogo para abrir el archivo
-    QString filter = "Prg File (*.prg) ;; Text File (*.txt) ;; All Files (*.*)";
     QString file = QFileDialog::getOpenFileName(this, tr("Open file"), config.getLastPath(), config.getOpenFileFilter());
     if (file.isEmpty()) {
         return;
     }
+
     // Actualizar lastPath antes de abrir el archivo
     QFileInfo fileInfo(file);
     config.setLastPath(fileInfo.absolutePath());
+
     // Abre el archivo
     openFile(file);
+}
+
+// ======================================================
+// Cerrar Archivo
+// ======================================================
+void MainWindow::on_actionClose_File_triggered()
+{
+    closeFile(ui->tabCode->currentIndex());
 }
 
 /************************************************************************************************
@@ -75,6 +128,9 @@ void MainWindow::on_actionOpen_triggered()
  *
  ************************************************************************************************/
 
+// ======================================================
+// Imprime un mensaje en la consola
+// ======================================================
 void MainWindow::print(const QString &mensaje, const QString &tipo) {
     QString timestamp = QDateTime::currentDateTime().toString("[hh:mm:ss] ");
     QString texto = timestamp + mensaje;
@@ -101,6 +157,9 @@ void MainWindow::print(const QString &mensaje, const QString &tipo) {
  *
  ************************************************************************************************/
 
+// ======================================================
+// Abre un archivo
+// ======================================================
 void MainWindow::openFile(const QString &filePath) {
 
     // TO-DO: Verificar que el archivo no está abierto ya
@@ -114,8 +173,84 @@ void MainWindow::openFile(const QString &filePath) {
 
 }
 
+// ======================================================
+// Crea un archivo nuevo
+// ======================================================
 void MainWindow::openNewFile(){
 
+    // Comprueba que no existe un archivo creado sin modificar antes de crear uno nuevo
+    for (int i = 0; i < ui->tabCode->count(); ++i) {
+        QPlainTextEdit *editor = qobject_cast<QPlainTextEdit *>(ui->tabCode->widget(i));
+        if (!editor)
+            continue;
+        // Archivo sin ruta → archivo nuevo
+        QString path = editor->property("filepath").toString();
+        // Solo consideramos archivos nuevos
+        if (path.isEmpty()) {
+            // Descartamos si está modificado (tiene *)
+            QString title = ui->tabCode->tabText(i);
+            if (!title.endsWith("*")) {
+                // Seleccionarlo en vez de crear otro
+                ui->tabCode->setCurrentIndex(i);
+                print(tr("A blank file is already open."));
+                return;
+            }
+        }
+    }
+
+    // Crea un editor de código sin ruta asignada
+    CodeEditor *editor = new CodeEditor();
+    editor->setProperty("filepath", "");
+
+    // Conector para cuando se modifica el archivo
+    connect(editor->document(), &QTextDocument::modificationChanged, this, &MainWindow::markFileAsModified);
+
+    // Asocia el editor a una pestaña
+    ui->tabCode->addTab(editor, tr("Untitled"));
+    ui->tabCode->setCurrentWidget(editor);
+    print(tr("New file created."));
 
 }
+
+// ======================================================
+// Cierra un archivo
+// ======================================================
+void MainWindow::closeFile(int index) {
+    // Selecciona la pestaña
+    QWidget* widget = ui->tabCode->widget(index);
+    if(!widget) return;
+    // Eliminar la pestaña
+    ui->tabCode->removeTab(index);
+    delete widget;
+}
+
+// ======================================================
+// Modifica un archivo
+// ======================================================
+void MainWindow::markFileAsModified(bool modified) {
+
+    // Obtenemos el objeto documento que manda el emisor
+    QTextDocument *doc = qobject_cast<QTextDocument *>(sender());
+    if (!doc)
+        return;
+
+    // Recorremos las pestañas hasta encontrar la pestaña del documento recibido
+    for (int i = 0; i < ui->tabCode->count(); ++i) {
+        QPlainTextEdit *editor = qobject_cast<QPlainTextEdit *>(ui->tabCode->widget(i));
+        if (editor && editor->document() == doc) {
+            QString title = ui->tabCode->tabText(i);
+            // Cuando guardamos (modified=false) quitamos el *
+            if (title.endsWith("*"))
+                title.chop(1);
+            // Cuando modificamos (modified=true) añadimos el *
+            if (modified)
+                title += "*";
+            ui->tabCode->setTabText(i, title);
+            break;
+        }
+    }
+}
+
+
+
 

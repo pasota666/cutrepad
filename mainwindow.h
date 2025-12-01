@@ -3,6 +3,7 @@
 
 #include "configmanager.h"
 #include <QMainWindow>
+#include <QPushButton>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -18,15 +19,21 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
+private slots:    
     void on_actionNew_triggered();
     void on_actionOpen_triggered();
+    //void on_actionClose_Tab_triggered();
+
+    void on_actionClose_File_triggered();
 
 private:
     Ui::MainWindow *ui;
     ConfigManager config;
+    QPushButton *tabAddButton = nullptr;
     void print(const QString &msg, const QString &type = "info");
     void openFile(const QString &filePath);
     void openNewFile();
+    void closeFile(int index);
+    void markFileAsModified(bool modified);
 };
 #endif // MAINWINDOW_H
