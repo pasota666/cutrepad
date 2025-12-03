@@ -1,4 +1,4 @@
-#include "myEventFilter.h"
+#include "myeventfilter.h"
 
 bool myEventFilter::eventFilter(QObject *obj, QEvent *event)
 {
