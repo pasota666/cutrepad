@@ -137,3 +137,17 @@ QString ConfigManager::getOpenFileFilter() {
 
     return filters.join(" ;; ");
 }
+
+// ======================================================
+// Almacena última extensión usada en el diálogo OpenFile
+// ======================================================
+void ConfigManager::setLastOpenFileExtension(const QString &ext) {
+    settings->setValue("Dialogs/LastOpenExtension", ext);
+}
+
+// ======================================================
+// Recupera última extensión usada en el diálogo Openfile
+// ======================================================
+QString ConfigManager::getLastOpenFileExtension() const {
+    return settings->value("Dialogs/LastOpenExtension", "").toString();
+}

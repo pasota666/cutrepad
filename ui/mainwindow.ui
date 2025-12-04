@@ -91,6 +91,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionNew"/>
+   <addaction name="actionOpen"/>
   </widget>
   <action name="actionNew">
    <property name="icon">
@@ -105,8 +106,15 @@
    </property>
   </action>
   <action name="actionOpen">
+   <property name="icon">
+    <iconset resource="../resources/resources.qrc">
+     <normaloff>:/icon/img/open.png</normaloff>:/icon/img/open.png</iconset>
+   </property>
    <property name="text">
     <string>Open ...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
    </property>
   </action>
   <action name="actionClose_File">
@@ -116,6 +124,9 @@
    </property>
    <property name="text">
     <string>Close File</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
    </property>
   </action>
   <action name="actionSave">

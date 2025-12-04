@@ -29,67 +29,87 @@
         <translation>Barra de herramientas</translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="101"/>
+        <location filename="../ui/mainwindow.ui" line="102"/>
         <source>New</source>
         <translation>Nuevo</translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="104"/>
+        <location filename="../ui/mainwindow.ui" line="105"/>
         <source>Ctrl+N</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="109"/>
+        <location filename="../ui/mainwindow.ui" line="114"/>
         <source>Open ...</source>
         <translation>Abrir ...</translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="118"/>
+        <location filename="../ui/mainwindow.ui" line="117"/>
+        <source>Ctrl+O</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ui/mainwindow.ui" line="126"/>
         <source>Close File</source>
         <translation>Cerrar Archivo</translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="123"/>
+        <location filename="../ui/mainwindow.ui" line="129"/>
+        <source>Ctrl+W</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ui/mainwindow.ui" line="134"/>
         <source>Save</source>
-        <translation type="unfinished"></translation>
+        <translation>Guardar</translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="128"/>
+        <location filename="../ui/mainwindow.ui" line="139"/>
         <source>Save As ...</source>
-        <translation type="unfinished"></translation>
+        <translation>Guardar Como ...</translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="133"/>
+        <location filename="../ui/mainwindow.ui" line="144"/>
         <source>Save All</source>
-        <translation type="unfinished"></translation>
+        <translation>Guardar Todo</translation>
     </message>
     <message>
-        <location filename="../ui/mainwindow.ui" line="138"/>
+        <location filename="../ui/mainwindow.ui" line="149"/>
         <source>Exit</source>
-        <translation type="unfinished"></translation>
+        <translation>Salir</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="70"/>
+        <location filename="../src/mainwindow.cpp" line="74"/>
         <source>Application started.</source>
         <translation>Aplicación iniciada.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="104"/>
-        <source>Open file</source>
-        <translation>Abrir archivo</translation>
+        <location filename="../src/mainwindow.cpp" line="118"/>
+        <source>Open File</source>
+        <translation>Abrir Archivo</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="195"/>
+        <location filename="../src/mainwindow.cpp" line="234"/>
+        <source>Can&apos;t open: </source>
+        <translation>No se pudo abrir: </translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="237"/>
+        <source>File open: </source>
+        <translation>Archivo abierto: </translation>
+    </message>
+    <message>
+        <location filename="../src/mainwindow.cpp" line="278"/>
         <source>A blank file is already open.</source>
         <translation>Un archivo en blanco ya está disponible.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="211"/>
+        <location filename="../src/mainwindow.cpp" line="294"/>
         <source>New file created.</source>
         <translation>Nuevo archivo creado.</translation>
     </message>
     <message>
-        <location filename="../src/mainwindow.cpp" line="209"/>
+        <location filename="../src/mainwindow.cpp" line="292"/>
         <source>Untitled</source>
         <translation>Sin título</translation>
     </message>

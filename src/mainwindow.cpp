@@ -1,13 +1,16 @@
 /*
 
     TO-DO:
-
     - Crear en cutrepad.ini una variable "language" [auto|en|es]
     - Crear en cutrepad.ini una variable "fontSize"
     - Crear en cutrepad.ini una variable "charset"
+    - Debería chequear los ini para ver si están correctos y si no, no lo carga.
+
+    HECHO:
+    - [OK] Debería guardar en el dialogo de abrir archivo la última extensión usada.
 
     CARACTERÍSTICAS AVANZADAS:
-    - Autocompletado de funciones integradas del lenguaje, con ayuda integrada visible.
+    - Autocompletado de funciones integradas del lenguaje, con ayuda integrada visible (caja funciones y overloads)
     - Autocompletado de funciones declaradas y existentes (incluso en archivos de biblioteca).
     - Acceso a herramientas externas.
 
@@ -24,6 +27,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QTabBar>
+#include <QRegularExpression>
 
 /************************************************************************************************
  *
@@ -98,20 +102,60 @@ void MainWindow::on_actionNew_triggered()
 // ======================================================
 // Abrir Archivo ...
 // ======================================================
+#include <QFileDialog>
+#include <QFileInfo>
+#include <QRegularExpression>
+
 void MainWindow::on_actionOpen_triggered()
-{        
-    // Muestra el dialogo para abrir el archivo
-    QString file = QFileDialog::getOpenFileName(this, tr("Open file"), config.getLastPath(), config.getOpenFileFilter());
-    if (file.isEmpty()) {
-        return;
+{
+    // Obtenemos los filtros
+    QString filters = config.getOpenFileFilter();
+
+    // Obtenemos la última extensión seleccionada
+    QString lastExt = config.getLastOpenFileExtension();
+
+    // Abre el diálogo
+    QFileDialog dialog(this, tr("Open File"), config.getLastPath());
+    dialog.setNameFilter(filters);
+    dialog.setFileMode(QFileDialog::ExistingFile);
+
+    // Seleccionamos el último filtro usado
+    QStringList filterList = filters.split(" ;; ");
+    for (QStringList::const_iterator it = filterList.cbegin(); it != filterList.cend(); ++it) {
+        const QString &f = *it;
+        if (f.contains("*." + lastExt)) {
+            dialog.selectNameFilter(f);
+            break;
+        }
     }
 
-    // Actualizar lastPath antes de abrir el archivo
-    QFileInfo fileInfo(file);
+    // Si el usuario cancela, el proceso termina
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    // Obtiene los archivos seleccionados
+    QStringList selectedFiles = dialog.selectedFiles();
+    if (selectedFiles.isEmpty())
+        return;
+
+    // Obtiene la ruta del archivo
+    QString filePath = selectedFiles.first();
+
+    // Guardar la última ruta
+    QFileInfo fileInfo(filePath);
     config.setLastPath(fileInfo.absolutePath());
 
-    // Abre el archivo
-    openFile(file);
+    // Guardar la extensión del filtro seleccionado
+    QString selectedFilter = dialog.selectedNameFilter();
+    QRegularExpression re("\\*\\.(\\w+)");
+    QRegularExpressionMatch match = re.match(selectedFilter);
+    if (match.hasMatch()) {
+        QString ext = match.captured(1);
+        config.setLastOpenFileExtension(ext);
+    }
+
+    // Abrir el archivo
+    openFile(filePath);
 }
 
 // ======================================================
@@ -162,14 +206,53 @@ void MainWindow::print(const QString &mensaje, const QString &tipo) {
 // ======================================================
 void MainWindow::openFile(const QString &filePath) {
 
-    // TO-DO: Verificar que el archivo no está abierto ya
+    // En caso de que el archivo ya está abierto, va a esa pestaña
+    for (int i = 0; i < ui->tabCode->count(); ++i) {
+        if (auto editor = qobject_cast<CodeEditor*>(ui->tabCode->widget(i))) {
+            QString path = editor->property("filePath").toString();
+            if (path == filePath) {
+                ui->tabCode->setCurrentIndex(i);
+                return;
+            }
+        }
+    }
+
+    // Si solo hay una pestaña y es un archivo nuevo sin modificar, la cierra
+    if (ui->tabCode->count() == 1) {
+        CodeEditor *editor = qobject_cast<CodeEditor *>(ui->tabCode->widget(0));
+        if (editor) {
+            QString path = editor->property("filePath").toString();
+            if (path.isEmpty() && !editor->document()->isModified()) {
+                closeFile(0);
+            }
+        }
+    }
 
     // Intentamos abrir el archivo
     QFile file(filePath);
     if (!file.open(QFile::ReadOnly | QFile::Text)) {
-        print("Error al abrir: " + filePath, "error");
+        print(tr("Can't open: ") + filePath, "error");
         return;
+    } else {
+        print(tr("File open: ") + filePath);
     }
+
+    // Obtiene el path del archivo
+    QFileInfo fileInfo(filePath);
+    QString baseName = fileInfo.fileName();
+
+    // Lee el archivo de texto
+    QString text = file.readAll();
+    file.close();
+
+    // Crea un editor
+    CodeEditor *editor = new CodeEditor();
+    editor->setPlainText(text);
+    editor->setProperty("filePath", filePath);
+
+    // Carga el editor en una pestaña
+    ui->tabCode->addTab(editor, baseName);
+    ui->tabCode->setCurrentWidget(editor);
 
 }
 
@@ -180,11 +263,11 @@ void MainWindow::openNewFile(){
 
     // Comprueba que no existe un archivo creado sin modificar antes de crear uno nuevo
     for (int i = 0; i < ui->tabCode->count(); ++i) {
-        QPlainTextEdit *editor = qobject_cast<QPlainTextEdit *>(ui->tabCode->widget(i));
+        CodeEditor *editor = qobject_cast<CodeEditor *>(ui->tabCode->widget(i));
         if (!editor)
             continue;
         // Archivo sin ruta → archivo nuevo
-        QString path = editor->property("filepath").toString();
+        QString path = editor->property("filePath").toString();
         // Solo consideramos archivos nuevos
         if (path.isEmpty()) {
             // Descartamos si está modificado (tiene *)
@@ -200,7 +283,7 @@ void MainWindow::openNewFile(){
 
     // Crea un editor de código sin ruta asignada
     CodeEditor *editor = new CodeEditor();
-    editor->setProperty("filepath", "");
+    editor->setProperty("filePath", "");
 
     // Conector para cuando se modifica el archivo
     connect(editor->document(), &QTextDocument::modificationChanged, this, &MainWindow::markFileAsModified);
@@ -236,7 +319,7 @@ void MainWindow::markFileAsModified(bool modified) {
 
     // Recorremos las pestañas hasta encontrar la pestaña del documento recibido
     for (int i = 0; i < ui->tabCode->count(); ++i) {
-        QPlainTextEdit *editor = qobject_cast<QPlainTextEdit *>(ui->tabCode->widget(i));
+        CodeEditor *editor = qobject_cast<CodeEditor *>(ui->tabCode->widget(i));
         if (editor && editor->document() == doc) {
             QString title = ui->tabCode->tabText(i);
             // Cuando guardamos (modified=false) quitamos el *
@@ -250,7 +333,3 @@ void MainWindow::markFileAsModified(bool modified) {
         }
     }
 }
-
-
-
-

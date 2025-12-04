@@ -23,6 +23,9 @@ public:
     QString getOpenFileFilter();
     QList<Language> getLanguages() const;
 
+    void setLastOpenFileExtension(const QString &ext);
+    QString getLastOpenFileExtension() const;
+
 private:
     QSettings *settings;
     void createDefaultConfigFile();
