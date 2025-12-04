@@ -35,11 +35,16 @@ set(PROJECT_SOURCES
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+
+    set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_SOURCE_DIR}/ui)
+
     # Crea el ejecutable
     qt_add_executable(cutrepad
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )
+
+    target_include_directories(cutrepad PRIVATE include)
 
     # Copia los archivos de lenguaje (solo cuando se ejecuta CMake)
     file(COPY ${CMAKE_SOURCE_DIR}/languages DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
