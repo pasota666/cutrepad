@@ -5,6 +5,7 @@
     - Crear en cutrepad.ini una variable "fontSize"
     - Crear en cutrepad.ini una variable "charset"
     - Debería chequear los ini para ver si están correctos y si no, no lo carga.
+    - Actualizar el ini recién creado y usar sección [Temp] para variables temporales. Quitar may. LastOpenExtension
 
     HECHO:
     - [OK] Debería guardar en el dialogo de abrir archivo la última extensión usada.
