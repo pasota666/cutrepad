@@ -16,10 +16,19 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 set(TS_FILES cutrepad_es_ES.ts)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+        src/appconfig.cpp
+        src/codeeditor.cpp
+        src/configmanager.cpp
+        src/main.cpp
+        src/mainwindow.cpp
+        src/myeventfilter.cpp
+        include/appconfig.h
+        include/codeeditor.h
+        include/configmanager.h
+        include/mainwindow.h
+        include/myeventfilter.h
+        ui/mainwindow.ui
+        resources/resources.qrc
         languages/cpp.ini
         languages/gemix.ini
         translations/${TS_FILES}
@@ -29,16 +38,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     # Crea el ejecutable
     qt_add_executable(cutrepad
         MANUAL_FINALIZATION
-        ${PROJECT_SOURCES}        
-        appconfig.h
-        appconfig.cpp
-        configmanager.h
-        configmanager.cpp
-        codeeditor.h
-        codeeditor.cpp
-        myeventfilter.h
-        myeventfilter.cpp
-        resources.qrc
+        ${PROJECT_SOURCES}
     )
 
     # Copia los archivos de lenguaje (solo cuando se ejecuta CMake)
