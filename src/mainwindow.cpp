@@ -66,6 +66,9 @@
         - Asignar shortcuts.
 
     COMO SUBIR AL REPOSITORIO:
+    - Commit: ALT+G, ALT+C o Tools -> Git -> Local Repository -> Commit
+    - Select all y rellenar mensaje.
+    - Tools -> Git -> Remote Repository -> Push
 
 
 */
