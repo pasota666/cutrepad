@@ -9,6 +9,7 @@ struct Language {
     int order;
     QString name;
     QStringList extensions;
+    QString charset;
 };
 
 class ConfigManager {
@@ -25,6 +26,9 @@ public:
 
     void setLastOpenFileExtension(const QString &ext);
     QString getLastOpenFileExtension() const;
+
+    QString getAppLanguage() const;
+    void setAppLanguage(const QString &lang);
 
 private:
     QSettings *settings;

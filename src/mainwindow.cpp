@@ -1,22 +1,74 @@
 /*
 
-    TO-DO:
-    - Crear en cutrepad.ini una variable "language" [auto|en|es]
-    - Crear en cutrepad.ini una variable "fontSize"
-    - Crear en cutrepad.ini una variable "charset"
-    - Debería chequear los ini para ver si están correctos y si no, no lo carga.
-    - Actualizar el ini recién creado y usar sección [Temp] para variables temporales. Quitar may. LastOpenExtension
+    // ======================================================
+    // TO-DO
+    // ======================================================
+    - GESTIÓN DE ARCHIVOS
+        - Guardar, guardar como y guardar todo.
+        - Tener en cuenta el charset.
+        - Testear en Gemix que guarda en el charset adecuado.
+    - Gestionar cerrado de pestañas.
+    - Gestionar salida del programa cuando se pulsa cerrar.
+    - Gestionar apertura de los archivos que estaban abiertos al iniciar.
 
-    HECHO:
+    - COMPILACIÓN
+        - Definir rutas del compilador en el ini del lenguaje.
+
+    - CONFIGURACIÓN
+        - Crear ventanas para configurar los ini y otros aspectos del programa.
+
+    - ESTÉTICA
+        - Coloreado de sintaxis.
+        - Fuente.
+        - Crear en cutrepad.ini una variable "fontSize"
+
+    - Gestión de archivos ini:
+        - Mejorar el ini recién creado si no existe.
+        - Debería chequear los ini para ver si están correctos y si no, no lo carga.
+
+    // ======================================================
+    // HECHO
+    // ======================================================
+
+    - [OK] Crear en cutrepad.ini una variable "language" [auto|en|es_ES]
     - [OK] Debería guardar en el dialogo de abrir archivo la última extensión usada.
+    - [OK] Crear en cutrepad.ini una variable "charset" para que Gemix guarde en su charset
 
-    CARACTERÍSTICAS AVANZADAS:
-    - Autocompletado de funciones integradas del lenguaje, con ayuda integrada visible (caja funciones y overloads)
+    // ======================================================
+    // BUGS
+    // ======================================================
+    - "Guardado" no se actualiza en cuanto se escribe en la statusBar.
+    - No se ve en la status bar la codificación.
+
+    // ======================================================
+    // IDEAS
+    // ======================================================
+    - Autocompletado de funciones integradas del lenguaje, con ayuda integrada visible (caja funciones y overloads).
     - Autocompletado de funciones declaradas y existentes (incluso en archivos de biblioteca).
-    - Acceso a herramientas externas.
+
+    // ======================================================
+    // HOW TO
+    // ======================================================
+
+    COMO USAR LA TRADUCCIÓN:
+    - Encerrar los literales que se quieran traducir con la función tr().
+    - CMakeLists está configurado para que cuando se compile el proyecto, esos literales se añadan al archivo cutrepad_es_ES.ts.
+    - En ese fichero, buscar los campos con type="unfinished" y cambiar "unfinished" por la traducción correspondiente.
+
+    COMO AGREGAR EVENTOS:
+    - Añadir la imagen a la carpeta "resources"
+    - Abrir "Resources.qrc" en el editor.
+    - Agregar la imagen del icono.
+    - En el UI:
+        - Crear la entrada en el menú para insertarlo en la lista de acciones.
+        - Agregar el icono en el action editor.
+        - Agregar "Goto Slot Triggered"
+        - Asignar shortcuts.
+
+    COMO SUBIR AL REPOSITORIO:
+
 
 */
-
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -29,6 +81,7 @@
 #include <QFileDialog>
 #include <QTabBar>
 #include <QRegularExpression>
+#include <QStringConverter>
 
 /************************************************************************************************
  *
@@ -36,12 +89,19 @@
  *
  ************************************************************************************************/
 
+// ======================================================
+// Constructor de la ventana principal
+// ======================================================
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     // Carga la UI
-    ui->setupUi(this);            
+    ui->setupUi(this);
+
+    //======================================================
+    // Organiza los elementos de la UI
+    //======================================================
 
     // Organiza la parte superior (tabAux y tabCode)
     ui->tabAux->setMinimumWidth(50); // Establece los tamaños mínimos
@@ -60,7 +120,36 @@ MainWindow::MainWindow(QWidget *parent)
     //ui->splitHorizontal->setSizes({376, 200}); // Tamaños por defecto (suman 576)
     ui->splitHorizontal->setSizes({376, 200}); // Tamaños por defecto (suman 768)
 
-    // Crea el filtro personalizado de eventos
+    //======================================================
+    // Configura la statusBar
+    //======================================================
+
+    // Inicializar la barra de estado
+    m_fileTypeLabel = new QLabel(this);
+    m_encodingLabel = new QLabel(this);
+    m_cursorPositionLabel = new QLabel(this);
+    m_modificationLabel = new QLabel(this);
+
+    // Añadir los widgets a la barra de estado
+    ui->statusbar->addPermanentWidget(m_fileTypeLabel); // Extensión del archivo
+    ui->statusbar->addPermanentWidget(m_encodingLabel); // El encoding con el que se guardará
+    ui->statusbar->addPermanentWidget(m_cursorPositionLabel); // Posición de cursor
+    ui->statusbar->addPermanentWidget(m_modificationLabel); // Si se ha modificado el archivo
+
+    // Establecer tamaños mínimos
+    m_fileTypeLabel->setMinimumWidth(80);
+    m_encodingLabel->setMinimumWidth(100);
+    m_cursorPositionLabel->setMinimumWidth(100);
+    m_modificationLabel->setMinimumWidth(80);
+
+    // Conectar señal para actualización automática
+    connect(ui->tabCode, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBar);
+
+    //======================================================
+    // Configuración de pestañas
+    //======================================================
+
+    // Crea el filtro personalizado de eventos para capturar el click de nueva pestaña
     myEventFilter *filter = new myEventFilter(this);
     ui->tabCode->installEventFilter(filter);
     connect(filter, &myEventFilter::emptyAreaClicked, this, &MainWindow::openNewFile); // Click área vacía de tabs para crear nuevo archivo
@@ -69,18 +158,27 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tabCode->setTabsClosable(true); // Las tabs de código pueden cerrarse
     connect(ui->tabCode, &QTabWidget::tabCloseRequested, this, &MainWindow::closeFile);
 
-    // Para finalizar, imprime información de la aplicación
-    setWindowTitle(AppConfig::APP_NAME + " " + AppConfig::VERSION);
-    print(AppConfig::APP_NAME + " " + AppConfig::VERSION + " by " + AppConfig::ORGANIZATION);
-    print(tr("Application started."));
-
     // Si no hay pestañas abiertas, crea una nueva
     if (ui->tabCode->count() == 0) {
         openNewFile();
     }
 
+    //======================================================
+    // Imprime información
+    //======================================================
+
+    // Pone el nombre de la aplicación
+    setWindowTitle(AppConfig::APP_NAME + " " + AppConfig::VERSION);
+
+    // Imprime arranque en consola
+    print(AppConfig::APP_NAME + " " + AppConfig::VERSION + " by " + AppConfig::ORGANIZATION);
+    print(tr("Application started."));
+
 }
 
+// ======================================================
+// Destructor de la ventana principal
+// ======================================================
 MainWindow::~MainWindow()
 {
     delete ui;
@@ -88,12 +186,12 @@ MainWindow::~MainWindow()
 
 /************************************************************************************************
  *
- *  ACCIONES DE BOTONES
+ *  EVENTOS DEL PROGRAMA (on_action, update, etc)
  *
  ************************************************************************************************/
 
 // ======================================================
-// Nuevo Archivo
+// Acción nuevo archivo
 // ======================================================
 void MainWindow::on_actionNew_triggered()
 {
@@ -101,7 +199,7 @@ void MainWindow::on_actionNew_triggered()
 }
 
 // ======================================================
-// Abrir Archivo ...
+// Acción abrir archivo ...
 // ======================================================
 #include <QFileDialog>
 #include <QFileInfo>
@@ -160,11 +258,154 @@ void MainWindow::on_actionOpen_triggered()
 }
 
 // ======================================================
-// Cerrar Archivo
+// Acción cerrar archivo
 // ======================================================
 void MainWindow::on_actionClose_File_triggered()
 {
     closeFile(ui->tabCode->currentIndex());
+}
+
+// ======================================================
+// Acción cerrar pestaña
+// ======================================================
+
+
+// ======================================================
+// Acción actualizar barra de estado
+// ======================================================
+void MainWindow::updateStatusBar() {
+
+    // Obtiene el editor actual
+    CodeEditor* editor = currentEditor();
+
+    // Si no hay editor (cerramos todas las pestañas), resetea la información
+    if (!editor) {
+        m_fileTypeLabel->setText(tr("No file"));
+        m_encodingLabel->setText(tr("No encoding"));
+        m_modificationLabel->setText("");
+        updateCursorPosition();
+        return;
+    }
+
+    // Actualizar tipo de archivo
+    QString filePath = editor->property("filePath").toString();
+    if (!filePath.isEmpty()) {
+        // CASO: Archivo con ruta
+        QFileInfo fileInfo(filePath);
+        // Muestra extension
+        QString ext = fileInfo.suffix().toLower();
+        m_fileTypeLabel->setText(ext.toUpper());
+        // Muestra charset
+        QString charset = "UTF-8"; // Por defecto
+        for (const Language &lang : config.getLanguages()) {
+            if (lang.extensions.contains(ext)) {
+                charset = lang.charset;
+                break;
+            }
+        }
+        m_encodingLabel->setText(charset);
+        // Muestra modificación
+        m_modificationLabel->setText(editor->document()->isModified() ? tr("Modified") : tr("Saved"));
+    } else {
+        // CASO: Archivo sin ruta (sin guardar)
+        m_fileTypeLabel->setText(tr("None"));
+        m_encodingLabel->setText(tr("No encoding")); // O "No encoding", como prefieras
+        m_modificationLabel->setText(tr("New file"));
+    }
+
+    // Actualizar posición del cursor
+    updateCursorPosition();
+
+    // Conectar señal de cambio de cursor para actualización en tiempo real
+    if (editor) {
+        connect(editor, &CodeEditor::cursorPositionChanged,
+                this, &MainWindow::updateCursorPosition, Qt::UniqueConnection);
+    }
+
+}
+
+// ======================================================
+// Acción actualizar posición del cursor
+// ======================================================
+void MainWindow::updateCursorPosition()
+{
+    if (CodeEditor* editor = currentEditor()) {
+        QTextCursor cursor = editor->textCursor();
+        int line = cursor.blockNumber() + 1;
+        int column = cursor.positionInBlock() + 1;
+        m_cursorPositionLabel->setText(QString("Ln %1, Col %2").arg(line).arg(column));
+    } else {
+        m_cursorPositionLabel->setText("Ln --, Col --");
+    }
+}
+
+// ======================================================
+// Acción guardar
+// ======================================================
+void MainWindow::on_actionSave_triggered()
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor) return;
+
+    QString path = editor->property("filePath").toString();
+    if (path.isEmpty()) {
+        on_actionSave_As_triggered();
+    } else {
+        saveFileToDisk(editor, path);
+    }
+}
+
+// ======================================================
+// Acción guardar como
+// ======================================================
+void MainWindow::on_actionSave_As_triggered()
+{
+    CodeEditor *editor = currentEditor();
+    if (!editor) return;
+
+    // 1. Determinar la extensión que queremos preseleccionar
+    QString currentPath = editor->property("filePath").toString();
+    QString targetExt;
+
+    if (currentPath.isEmpty()) {
+        targetExt = "txt"; // Por defecto para archivos nuevos
+    } else {
+        targetExt = QFileInfo(currentPath).suffix().toLower();
+    }
+
+    // 2. Configurar el diálogo
+    QString filters = config.getOpenFileFilter();
+    QFileDialog dialog(this, tr("Save as"), config.getLastPath(), filters);
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setDefaultSuffix(targetExt);
+
+    // 3. Buscar y seleccionar el filtro en el dropdown (Evitando el detach del contenedor)
+    QStringList filterList = filters.split(" ;; ");
+    for (QStringList::const_iterator it = filterList.cbegin(); it != filterList.cend(); ++it) {
+        const QString &f = *it;
+        if (f.contains("*." + targetExt)) {
+            dialog.selectNameFilter(f);
+            break;
+        }
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        // 4. Evitar el warning de temporal: guardamos la lista primero
+        QStringList files = dialog.selectedFiles();
+        if (!files.isEmpty()) {
+            QString path = files.first();
+            config.setLastPath(QFileInfo(path).path());
+            saveFileToDisk(editor, path);
+        }
+    }
+}
+
+// ======================================================
+// Acción guardar todo
+// ======================================================
+void MainWindow::on_actionSave_All_triggered()
+{
+
 }
 
 /************************************************************************************************
@@ -251,9 +492,14 @@ void MainWindow::openFile(const QString &filePath) {
     editor->setPlainText(text);
     editor->setProperty("filePath", filePath);
 
+    // Conector para cuando se modifica el archivo
+    connect(editor->document(), &QTextDocument::modificationChanged, this, &MainWindow::markFileAsModified);
+
     // Carga el editor en una pestaña
     ui->tabCode->addTab(editor, baseName);
     ui->tabCode->setCurrentWidget(editor);
+
+    updateStatusBar();
 
 }
 
@@ -284,7 +530,7 @@ void MainWindow::openNewFile(){
 
     // Crea un editor de código sin ruta asignada
     CodeEditor *editor = new CodeEditor();
-    editor->setProperty("filePath", "");
+    editor->setProperty("filePath", "");    
 
     // Conector para cuando se modifica el archivo
     connect(editor->document(), &QTextDocument::modificationChanged, this, &MainWindow::markFileAsModified);
@@ -293,6 +539,8 @@ void MainWindow::openNewFile(){
     ui->tabCode->addTab(editor, tr("Untitled"));
     ui->tabCode->setCurrentWidget(editor);
     print(tr("New file created."));
+
+    updateStatusBar();
 
 }
 
@@ -333,4 +581,74 @@ void MainWindow::markFileAsModified(bool modified) {
             break;
         }
     }
+
+    updateStatusBar();
 }
+
+// ======================================================
+// Guarda un archivo en disco
+// ======================================================
+bool MainWindow::saveFileToDisk(CodeEditor *editor, const QString &path) {
+
+    // Si no existe el editor o no hay path, termina
+    if (!editor || path.isEmpty()) return false;
+
+    // Determinar el charset según la extensión
+    QString ext = QFileInfo(path).suffix().toLower();
+    QString charsetName = "UTF-8";
+
+    for (const Language &lang : config.getLanguages()) {
+        if (lang.extensions.contains(ext)) {
+            charsetName = lang.charset;
+            break;
+        }
+    }
+
+    // Configura el encoder de Qt 6
+    auto encoding = QStringConverter::encodingForName(charsetName.toLatin1().constData());
+    // Si encoding es nullopt (no reconocido), usamos Utf8 por defecto
+    QStringEncoder encoder(encoding.value_or(QStringConverter::Utf8));
+
+    // Escribe el archivo
+    QFile file(path);
+    if (!file.open(QFile::WriteOnly)) {
+        print(tr("Error: Could not open the file for writing"), "error");
+        return false;
+    }
+
+    // Convertimos el QString a la codificación destino y escribimos
+    file.write(encoder.encode(editor->toPlainText()));
+    file.close();
+
+    // Actualizar metadatos y UI
+    editor->setProperty("filePath", path);
+    editor->document()->setModified(false); // Esto quitará el '*' automáticamente
+
+    int index = ui->tabCode->indexOf(editor);
+    if (index != -1) {
+        ui->tabCode->setTabText(index, QFileInfo(path).fileName());
+    }
+
+    print(tr("File saved: %1 [%2]").arg(QFileInfo(path).fileName(), charsetName));
+
+    // Forzamos actualización de los labels de la barra de estado
+    updateStatusBar();
+
+    return true;
+}
+
+
+/************************************************************************************************
+ *
+ *  FUNCIONES AUXILIARES
+ *
+ ************************************************************************************************/
+
+// ======================================================
+// Obtiene el editor (pestaña) actual
+// ======================================================
+
+CodeEditor* MainWindow::currentEditor() const {
+    return qobject_cast<CodeEditor*>(ui->tabCode->currentWidget());
+}
+

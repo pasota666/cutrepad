@@ -39,6 +39,7 @@ void ConfigManager::createDefaultConfigFile() {
     // Categoría App
     settings->beginGroup("App");
     settings->setValue("lastPath", QDir::homePath());
+    settings->setValue("appLanguage", "auto");
     settings->endGroup();
 
     // Categoría SyntaxHighlight
@@ -67,33 +68,46 @@ void ConfigManager::setLastPath(const QString &path) {
 // Carga los lenguajes de los archivos .ini de /languages
 // ======================================================
 void ConfigManager::loadLanguages() {
+    // Limpia la estructura
     languages.clear();
+
+    // Obtiene el directorio de los lenguajes
     QString langPath = QDir(QCoreApplication::applicationDirPath()).filePath("languages");
     QDir langDir(langPath);
     if (!langDir.exists()) {
         qWarning() << "[ConfigManager] La carpeta de lenguajes no existe:" << langPath;
         return;
     }
+
+    // Obtiene los archivos ini de ese directorio
     QStringList files = langDir.entryList(QStringList() << "*.ini", QDir::Files);
 
+    // Itera los archivos ini
     for (auto it = files.cbegin(); it != files.cend(); ++it) {
+        // Carga el nombre del archivo
         const QString &fileName = *it;
         QString fullPath = langDir.filePath(fileName);
         QSettings s(fullPath, QSettings::IniFormat);
 
+        // Obtiene campos "order" y "languageName"
         Language lang;
         lang.order = s.value("Language/order", 99).toInt();
         lang.name = s.value("Language/languageName").toString();
 
+        // Obtiene las extensiones de archivo (ej: c, cpp, etc)
         QString exts = s.value("Language/extensions").toString();
         lang.extensions = exts.split(",", Qt::SkipEmptyParts);
-
         for (QString &e : lang.extensions)
             e = e.trimmed();
 
+        // Obtiene el charset (si no está configurado pone UTF-8 por defecto)
+        lang.charset = s.value("Language/charset", "UTF-8").toString();
+
+        // Obtiene el nombreS
         if (lang.name.isEmpty())
             lang.name = fileName;
 
+        // Carga el lenguaje en la estructura
         languages.append(lang);
     }
 
@@ -150,4 +164,19 @@ void ConfigManager::setLastOpenFileExtension(const QString &ext) {
 // ======================================================
 QString ConfigManager::getLastOpenFileExtension() const {
     return settings->value("Dialogs/LastOpenExtension", "").toString();
+}
+
+// ======================================================
+// Obtiene la configuración del lenguaje de la app
+// ======================================================
+QString ConfigManager::getAppLanguage() const {
+    return settings->value("App/appLanguage", "auto").toString();
+}
+
+// ======================================================
+// Establece la configuración del lenguaje de la app
+// ======================================================
+void ConfigManager::setAppLanguage(const QString &lang) {
+    settings->setValue("App/appLanguage", lang);
+    settings->sync();
 }
