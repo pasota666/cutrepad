@@ -24,11 +24,17 @@ public:
     QString getOpenFileFilter();
     QList<Language> getLanguages() const;
 
-    void setLastOpenFileExtension(const QString &ext);
     QString getLastOpenFileExtension() const;
+    void setLastOpenFileExtension(const QString &ext);
 
     QString getAppLanguage() const;
     void setAppLanguage(const QString &lang);
+
+    QStringList getOpenFiles() const;
+    void setOpenFiles(const QStringList &files);
+
+    int getActiveTab() const;
+    void setActiveTab(int index);
 
 private:
     QSettings *settings;

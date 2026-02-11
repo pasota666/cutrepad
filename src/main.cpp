@@ -6,15 +6,18 @@
 
 int main(int argc, char *argv[])
 {
+    // Crea el objeto aplicación
     QApplication a(argc, argv);
 
+    // Crea el objeto config y translator
     ConfigManager config;
     QString userLang = config.getAppLanguage();
     QTranslator translator;
     bool loaded = false;
 
+    // Si el lenguaje está definido como "auto" en el ini
     if (userLang == "auto") {
-        // Lógica original de detección por sistema
+        // Obtiene el lenguaje del sistema
         const QStringList uiLanguages = QLocale::system().uiLanguages();
         for (const QString &locale : uiLanguages) {
             const QString baseName = "cutrepad_" + QLocale(locale).name();
@@ -24,13 +27,14 @@ int main(int argc, char *argv[])
             }
         }
     } else {
-        // Forzamos el idioma definido por el usuario (ej: "es" o "en")
-        // Esto busca archivos como :/i18n/cutrepad_es.qm
+        // Forzamos el idioma definido por el usuario (ej: "es_ES" o "en")
+        // Esto busca archivos en la carpeta translations. (Ej. /i18n/cutrepad_es_ES.qm)
         if (translator.load(":/i18n/cutrepad_" + userLang)) {
             loaded = true;
         }
     }
 
+    // Si se ha podido cargar una traducción, la aplica al programa
     if (loaded) {
         a.installTranslator(&translator);
     }

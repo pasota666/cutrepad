@@ -21,19 +21,19 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:    
     void on_actionNew_triggered();
     void on_actionOpen_triggered();
-    //void on_actionClose_Tab_triggered();
     void on_actionClose_File_triggered();
     void updateStatusBar();
     void updateCursorPosition();
-
-    void on_actionSave_triggered();
-
-    void on_actionSave_As_triggered();
-
+    bool on_actionSave_triggered();
+    bool on_actionSave_As_triggered();
     void on_actionSave_All_triggered();
+    void on_actionExit_triggered();
 
 private:
     // Variables
@@ -53,5 +53,6 @@ private:
     void markFileAsModified(bool modified);
     bool saveFileToDisk(CodeEditor *editor, const QString &path);
     CodeEditor* currentEditor() const;
+    bool checkUnsavedFiles(CodeEditor* editor, const QString& nombreArchivo);
 };
 #endif // MAINWINDOW_H

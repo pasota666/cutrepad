@@ -180,3 +180,34 @@ void ConfigManager::setAppLanguage(const QString &lang) {
     settings->setValue("App/appLanguage", lang);
     settings->sync();
 }
+
+// ======================================================
+// Almacena la lista de archivos que estaban abiertos
+// ======================================================
+void ConfigManager::setOpenFiles(const QStringList &files) {
+    settings->setValue("App/openFiles", files);
+    settings->sync();
+}
+
+// ======================================================
+// Recupera la lista de archivos para restaurar sesión
+// ======================================================
+QStringList ConfigManager::getOpenFiles() const {
+    return settings->value("App/openFiles").toStringList();
+}
+
+// ======================================================
+// Almacena el índice de la pestaña que estaba activa
+// ======================================================
+void ConfigManager::setActiveTab(int index) {
+    settings->setValue("App/activeTab", index);
+    settings->sync();
+}
+
+// ======================================================
+// Recupera el índice de la pestaña activa
+// ======================================================
+int ConfigManager::getActiveTab() const {
+    return settings->value("App/activeTab", 0).toInt();
+}
+
